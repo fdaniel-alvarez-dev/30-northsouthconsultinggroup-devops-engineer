@@ -1,0 +1,40 @@
+---
+- name: Linux hardening baseline (example)
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    sshd_config_path: /etc/ssh/sshd_config
+
+  tasks:
+    - name: Ensure SSH root login is disabled
+      ansible.builtin.lineinfile:
+        path: "{{ sshd_config_path }}"
+        regexp: '^PermitRootLogin\\s+'
+        line: "PermitRootLogin no"
+        create: false
+        backrefs: false
+      notify: Reload sshd
+
+    - name: Ensure SSH password authentication is disabled
+      ansible.builtin.lineinfile:
+        path: "{{ sshd_config_path }}"
+        regexp: '^PasswordAuthentication\\s+'
+        line: "PasswordAuthentication no"
+        create: false
+        backrefs: false
+      notify: Reload sshd
+
+    - name: Ensure unattended upgrades are installed (Debian/Ubuntu)
+      ansible.builtin.package:
+        name: unattended-upgrades
+        state: present
+      when: ansible_os_family == "Debian"
+
+  handlers:
+    - name: Reload sshd
+      ansible.builtin.service:
+        name: ssh
+        state: reloaded
+
